@@ -14,6 +14,9 @@ from wtforms.validators import Required
 from flask_sqlalchemy import SQLAlchemy
 from flask_script import Shell
 from flask_migrate import Migrate,MigrateCommand
+from flask_mail import Mail
+from flask_mail import Message
+from threading import Thread
 import os
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -23,10 +26,23 @@ app.config['SECRET_KEY'] = "zcxmhylllll"
 app.config['SQLALCHEMY_DATABASE_URI']='sqlite:///'+os.path.join(basedir,'data.sqlite')
 app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
 
+#mail configure [QQ 邮箱]
+app.config['MAIL_SERVER'] = 'smtp.qq.com'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USE_SSL'] = True
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_SUBJECT'] = '[Flasky Test]'
+app.config['MAIL_SENDER'] = 'xxx<xxxxx@qq.com>'
+app.config['FLASK_ADMIN'] = 'aaaaa@qq.com'  #os.environ.get('FLASK_ADMIN')
+
+
+
 db = SQLAlchemy(app)
 manager = Manager(app)
 bootstrap = Bootstrap(app)
 moment= Moment(app)
+mail = Mail(app)
 
 migrate = Migrate(app,db)
 manager.add_command('db',MigrateCommand)
@@ -63,6 +79,8 @@ def index():
 			user=User(username=form.name.data)    			
 			db.session.add(user)
 			session['known']=False
+			if(app.config['FLASK_ADMIN']):
+    				send_email(app.config['FLASK_ADMIN'],'New User','mail/new_user',user=user)
 		else:
 			session['known']=True
 		session['name']=form.name.data
@@ -85,6 +103,17 @@ def internal_server_error(e):
 def make_shell_context():
     return dict(app=app,db=db,User=User,Role=Role)
 #manager.add_command("Shell",Shell(make_context=make_shell_context))
+def send_async_mail(app, msg):
+	with app.app_context():
+		mail.send(msg)
+def send_email(to,subject,template, **kwargs):
+	msg = Message(app.config['MAIL_SUBJECT']+subject,sender=app.config['MAIL_SENDER'],recipients=[to])
+	msg.body=render_template(template+".txt",**kwargs)
+	msg.html=render_template(template+'.html',**kwargs)
+	thr=Thread(target=send_async_mail,args=[app,msg])
+	thr.start()
+	return thr
+    	
 
 if __name__ == "__main__":
 	manager.run()
