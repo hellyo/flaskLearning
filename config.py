@@ -9,7 +9,9 @@ basedir=os.path.abspath(os.path.dirname(__file__))
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'xxxxxxxxxxx'
     #程序结束时自动commit 数据
-    SQLALCHEMY_COMMIT_ON_TEARDOWM = True
+    SQLALCHEMY_COMMIT_ON_TEARDOWN = True
+    SQLALCHEMY_TRACK_MODIFICATIONS = True
+    
     MAIL_SUBJECT = '[FLASK TEST]'
     MAIL_SENDER = 'XX<xxxx@xxxx.com>'
     FLASK_ADMIN = os.environ.get('FLASK_ADMIN')
