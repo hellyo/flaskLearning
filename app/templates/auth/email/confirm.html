@@ -1,0 +1,6 @@
+Dear <b>{{ user.username }}</b>,
+Welcome to xxx!
+To confirm you account please click on the following link:
+<a href="{{ url_for('auth.confirm',token=token,_external = True) }}">Confirm Your Account</a>
+
+xxxxx
