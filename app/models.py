@@ -2,7 +2,9 @@ from . import db
 from werkzeug.security import generate_password_hash,check_password_hash
 from flask_login import UserMixin
 from . import login_manager
-
+from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
+from flask import current_app
+from . import db
 class Role(db.Model):
 	__tablename__ = 'roles'
 	id = db.Column(db.Integer,primary_key=True)
@@ -18,9 +20,8 @@ class User(UserMixin,db.Model):
 	email = db.Column(db.String(64),unique = True,index = True)
 	username = db.Column(db.String(64),unique = True,index = True)
 	password_hash = db.Column(db.String(128))
-	
 	role_id = db.Column(db.Integer,db.ForeignKey('roles.id'))
-	
+	confirmed = db.Column(db.Boolean,default = False)
 	
 	
 	@property
@@ -32,13 +33,28 @@ class User(UserMixin,db.Model):
 		self.password_hash =generate_password_hash(password)
 	
 	def checkIn(self,password):
-		return check_password_hash(self.password_hash,password)
-		
-	def is_authenticated(self):
-		return False
-		
+		return check_password_hash(self.password_hash,password)	
+	
+	def generate_cinfirm_token(self,expiration=3600):
+    	s = Serializer(current_app.config['SECRET_KEY'],expiration)
+		return s.dumps({'confirm':self.id})
+	
+	def confirm(self,token):
+    	s = Serializer(current_app.config['SECRET_KEY'])
+		try：
+			data = s.loads(token)
+		except:
+			return False
+		if data.get("confirm") != self.id:
+			return False
+		self.confirm = True
+		db.session.add(self)
+		return True
+
+
 	def __repr__(self):
 		return '<User %r>' % self.username
+
 
 
 @login_manager.user_loader
