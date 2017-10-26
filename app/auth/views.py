@@ -31,7 +31,7 @@ def register():
 		user = User(email=form.email.data,username=form.username.data,password=form.password.data)
 		db.session.add(user)		
 		db.session.commit()
-		token = user.generate_cinfirm_token()
+		token = user.generate_confirm_token()
 		send_email(user.email,'Confirm You Account','auth/email/confirm',user=user,token=token)		
 		flash("A confirmation email has been sent to you by email.")		
 		return redirect(url_for('main.index'))
@@ -39,7 +39,7 @@ def register():
 
 @auth.route('/confirm/<token>')
 @login_required
-def confirm():
+def confirm(token):
 	if current_user.confirmed:
 		return redirect(url_for('main.index'))
 	if current_user.confirm(token):

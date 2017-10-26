@@ -13,7 +13,7 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = True
     
     MAIL_SUBJECT = '[FLASK TEST]'
-    MAIL_SENDER = 'xx<xxxxxx@qq.com>'
+    MAIL_SENDER = 'xx<xxxxxx@xx.com>'
     FLASK_ADMIN = os.environ.get('FLASK_ADMIN')
 
     @staticmethod

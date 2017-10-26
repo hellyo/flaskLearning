@@ -35,7 +35,7 @@ class User(UserMixin,db.Model):
 	def checkIn(self,password):
 		return check_password_hash(self.password_hash,password)	
 	
-	def generate_cinfirm_token(self,expiration=3600):
+	def generate_confirm_token(self,expiration=3600):
 		s = Serializer(current_app.config['SECRET_KEY'],expiration)
 		return s.dumps({'confirm':self.id})
 	
@@ -48,7 +48,7 @@ class User(UserMixin,db.Model):
 			return False
 		if data.get("confirm") != self.id:
 			return False
-		self.confirmd = True
+		self.confirmed = True
 		db.session.add(self)
 		return True
 
