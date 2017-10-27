@@ -3,3 +3,4 @@
 data_dev.sqlite
 .vscode/settings.json
 data_dev.sqlite
+venv/*
