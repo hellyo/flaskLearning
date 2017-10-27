@@ -1,3 +1,5 @@
+/config.pyc
+/config.py
 data_dev.sqlite
-config.*
-.vscode/*
+.vscode/settings.json
+data_dev.sqlite
