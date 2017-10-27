@@ -1,6 +1,7 @@
 /config.pyc
 /config.py
-data_dev.sqlite
-.vscode/settings.json
-data_dev.sqlite
+*.sqlite
 venv/*
+.vscode/*
+.idea/*
+*.pyc
