@@ -1,4 +1,7 @@
-from . import db
+#coding=utf-8
+'''
+数据库表模型
+'''
 from werkzeug.security import generate_password_hash,check_password_hash
 from flask_login import UserMixin
 from . import login_manager
@@ -22,7 +25,7 @@ class User(UserMixin,db.Model):
 	password_hash = db.Column(db.String(128))
 	role_id = db.Column(db.Integer,db.ForeignKey('roles.id'))
 	confirmed = db.Column(db.Boolean,default = False)
-	
+
 	
 	@property
 	def password(self):
@@ -31,8 +34,12 @@ class User(UserMixin,db.Model):
 	@password.setter
 	def password(self,password):
 		self.password_hash =generate_password_hash(password)
-	
+
+		
 	def checkIn(self,password):
+		'''
+		验证密码
+		'''
 		return check_password_hash(self.password_hash,password)	
 	
 	def generate_confirm_token(self,expiration=3600):
@@ -52,6 +59,42 @@ class User(UserMixin,db.Model):
 		db.session.add(self)
 		return True
 
+	def generate_reset_token(self,expiration = 3600):
+		s=Serializer(current_app.config['SECRET_KEY'],expiration)
+		return s.dumps({'reset':self.id}) 	 
+
+	def reset_password(self,token,newPasswd):
+		s = Serializer(current_app.config['SECRET_KEY'])
+		try:
+			data = s.loads(token)
+		except:
+			return False
+		if data.get('reset') != self.id:
+			return False
+		self.password = newPasswd
+		db.session.add(self)
+		return True
+
+	def generate_change_mail_token(self,newEmail,expiration = 3600):
+		s = Serializer(current_app.config['SECRET_KEY'],expiration)
+		return s.dumps({'change_email':self.id,'newE':newEmail})
+		
+	def change_email(self,token):
+		s=Serializer(current_app.config['SECRET_KEY'])
+		try:
+			data=s.loads(token)
+		except:
+			return False
+		if data.get('change_email') != self.id:
+			return False
+		new_email = data.get('newE')
+		if new_email is None:
+			return False
+		if self.query.filter_by(email=new_email).first() is not None:
+			return False
+		self.email = new_email
+		db.session.add(self)
+		return True
 
 	def __repr__(self):
 		return '<User %r>' % self.username
