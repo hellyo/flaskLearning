@@ -29,6 +29,7 @@ class Role(db.Model):
 	
 	@staticmethod
 	def insert_roles():
+		print('start')
 		roles = {
 			'User':(Permission.FOLLOW | Permission.COMMENT |Permission.WRITE_ARTICLES,True),
 			'Moderator':(Permission.FOLLOW|Permission.COMMENT|Permission.WRITE_ARTICLES|Permission.MODERATE_COMMENTS,False),
@@ -42,6 +43,7 @@ class Role(db.Model):
 				role.default = roles[r][1]
 				db.session.add(role)
 			db.session.commit()
+			print('commit done!')
 
 class User(UserMixin,db.Model):
 	__tablename__='users'
@@ -60,11 +62,12 @@ class User(UserMixin,db.Model):
 
 	def __init__(self,**kwargs):
 		super(User,self).__init__(**kwargs)
+		print(self.email,current_app.config['FLASK_ADMIN'])
+		print(self.email == current_app.config['FLASK_ADMIN'])
+		if self.email == current_app.config['FLASK_ADMIN']:
+			self.role = Role.query.filter_by(permissions=0xff).first()
 		if self.role is None:
-			if self.email == current_app.config['FLASK_ADMIN']:
-				self.role = Role.query.filter_by(permission=0xff).first()
-			if self.role is None:
-				self.role = Role.query.filter_by(default=True).first()
+			self.role = Role.query.filter_by(default=True).first()		
 				
 		
 	@property
@@ -137,9 +140,11 @@ class User(UserMixin,db.Model):
 		return True
 
 	def can(self,permissions):
+		print(self.role,permissions)
 		return self.role is not None and (self.role.permissions & permissions) == permissions
 	
 	def is_administrator(self):
+		print(self.can(Permission.ADMINISTER))
 		return self.can(Permission.ADMINISTER)
 	
 	def __repr__(self):
@@ -157,4 +162,5 @@ class AnonymousUser(AnonymousUserMixin):
 		return False
 @login_manager.user_loader
 def load_user(user_id):
+    
 	return User.query.get(int(user_id))
