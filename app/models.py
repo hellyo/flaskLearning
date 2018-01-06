@@ -6,9 +6,10 @@ from werkzeug.security import generate_password_hash,check_password_hash
 from flask_login import UserMixin,AnonymousUserMixin
 from . import login_manager
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from flask import current_app
+from flask import current_app,request
 from . import db
 from datetime import datetime
+import hashlib
 
 
 class Permission:
@@ -28,8 +29,7 @@ class Role(db.Model):
 		return '<Role %r>' % self.name
 	
 	@staticmethod
-	def insert_roles():
-		print('start')
+	def insert_roles():				
 		roles = {
 			'User':(Permission.FOLLOW | Permission.COMMENT |Permission.WRITE_ARTICLES,True),
 			'Moderator':(Permission.FOLLOW|Permission.COMMENT|Permission.WRITE_ARTICLES|Permission.MODERATE_COMMENTS,False),
@@ -43,7 +43,7 @@ class Role(db.Model):
 				role.default = roles[r][1]
 				db.session.add(role)
 			db.session.commit()
-			print('commit done!')
+			#print('commit done!')
 
 class User(UserMixin,db.Model):
 	__tablename__='users'
@@ -53,6 +53,7 @@ class User(UserMixin,db.Model):
 	password_hash = db.Column(db.String(128))
 	role_id = db.Column(db.Integer,db.ForeignKey('roles.id'))
 	confirmed = db.Column(db.Boolean,default = False)
+	avatar_hash = db.Column(db.String(32))
 	
 	name = db.Column(db.String(64))
 	location = db.Column(db.String(64))
@@ -62,12 +63,15 @@ class User(UserMixin,db.Model):
 
 	def __init__(self,**kwargs):
 		super(User,self).__init__(**kwargs)
-		print(self.email,current_app.config['FLASK_ADMIN'])
-		print(self.email == current_app.config['FLASK_ADMIN'])
+		#print(self.email,current_app.config['FLASK_ADMIN'])
+		#print(self.email == current_app.config['FLASK_ADMIN'])
 		if self.email == current_app.config['FLASK_ADMIN']:
 			self.role = Role.query.filter_by(permissions=0xff).first()
 		if self.role is None:
-			self.role = Role.query.filter_by(default=True).first()		
+			self.role = Role.query.filter_by(default=True).first()
+		if self.email is not None and self.avatar_hash is None:
+			self.avatar_hash = hashlib.md5(self.email.encode('utf-8')).hexdigest()
+			
 				
 		
 	@property
@@ -136,15 +140,16 @@ class User(UserMixin,db.Model):
 		if self.query.filter_by(email=new_email).first() is not None:
 			return False
 		self.email = new_email
+		self.avatar_hash = hashlib.md5(self.email.encode('utf-8')).hexdigest()
 		db.session.add(self)
 		return True
 
 	def can(self,permissions):
-		print(self.role,permissions)
+		#print(self.role,permissions)
 		return self.role is not None and (self.role.permissions & permissions) == permissions
 	
 	def is_administrator(self):
-		print(self.can(Permission.ADMINISTER))
+		#print(self.can(Permission.ADMINISTER))
 		return self.can(Permission.ADMINISTER)
 	
 	def __repr__(self):
@@ -153,6 +158,17 @@ class User(UserMixin,db.Model):
 	def ping(self):
 		self.last_seen = datetime.utcnow()
 		db.session.add(self)
+
+	def gravatar(self,size=100,default='identicon',rating='g'):
+		if request.is_secure:
+			url = 'https://secure.gravatar.com/avatar'
+		else:
+			url = 'http://www.gravatar.com/avatar'
+		hash = hashlib.md5(self.email.encode('utf-8')).hexdigest()				
+		rtnStr= '{url}/{hash}?s={size}&d={default}&r={rating}'.format(url=url,hash=hash,size=size,default=default,rating=rating)
+		#print(rtnStr)
+		return rtnStr
+
 		
 
 class AnonymousUser(AnonymousUserMixin):
