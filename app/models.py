@@ -60,11 +60,14 @@ class User(UserMixin,db.Model):
 	about_me = db.Column(db.Text())
 	member_since=db.Column(db.DateTime(),default=datetime.utcnow)
 	last_seen = db.Column(db.DateTime(),default=datetime.utcnow)
+	posts = db.relationship('Post',backref='author',lazy='dynamic')
 
 	def __init__(self,**kwargs):
 		super(User,self).__init__(**kwargs)
-		#print(self.email,current_app.config['FLASK_ADMIN'])
-		#print(self.email == current_app.config['FLASK_ADMIN'])
+		print('-----------------------------')
+		print(self.email,current_app.config['FLASK_ADMIN'])
+		print(self.email == current_app.config['FLASK_ADMIN'])
+		print('-----------------------------')
 		if self.email == current_app.config['FLASK_ADMIN']:
 			self.role = Role.query.filter_by(permissions=0xff).first()
 		if self.role is None:
@@ -174,9 +177,20 @@ class User(UserMixin,db.Model):
 class AnonymousUser(AnonymousUserMixin):
 	def can(self,permissions):
 		return False
+
 	def is_administrator(self):
 		return False
+login_manager.anonymous_user = AnonymousUser
+
 @login_manager.user_loader
 def load_user(user_id):
-    
 	return User.query.get(int(user_id))
+
+class Post(db.Model):
+	__tablebname__ = 'posts'
+	
+	id = db.Column(db.Integer,primary_key=True)
+	body = db.Column(db.Text)
+	timestamp = db.Column(db.DateTime,index=True,default=datetime.utcnow())
+	author_id = db.Column(db.Integer,db.ForeignKey('users.id'))
+	
