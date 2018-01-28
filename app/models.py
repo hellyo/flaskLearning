@@ -89,6 +89,7 @@ class User(UserMixin,db.Model):
 		print(self.email,current_app.config['FLASK_ADMIN'])
 		print(self.email == current_app.config['FLASK_ADMIN'])
 		print('-----------------------------')
+		self.follow(self)
 		if self.email == current_app.config['FLASK_ADMIN']:
     			self.role = Role.query.filter_by(permissions=0xff).first()
 		if self.role is None:
@@ -233,6 +234,15 @@ class User(UserMixin,db.Model):
 
 	def is_followed_by(self,user):
 		return self.followers.filter_by(follower_id=user.id).first() is not None
+
+	
+	def add_self_follow():
+		for user in User.query.all():
+			if not user.is_following(user):
+				user.follow(user)
+				db.session.add(user)
+				db.session.commit()
+    		
 
 
 class AnonymousUser(AnonymousUserMixin):
