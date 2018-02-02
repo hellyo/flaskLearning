@@ -12,7 +12,7 @@ from datetime import datetime
 import hashlib
 import bleach
 from markdown import markdown
-
+from app.exceptions import ValidationError
 
 class Permission:
 	FOLLOW=0x01
@@ -257,7 +257,17 @@ class User(UserMixin,db.Model):
 			return None
 		return User.query.get(data['id'])
     		
-
+	def to_json(self):
+		json_user = {
+			'url':url_for('api.get_post',id=self.id,_external=True),
+			'username':self.username,
+			'member_since':self.member_since,
+			'last_seen':self.last_seen,
+			'posts':url_for('api.get_usr_posts',id=self.id,_external=True),
+			'followed_posts':url_for('api.get_user_followed_posts',id=self.id,_external=True),
+			'post_count':self.posts.count()
+		}		
+		return json_user
 
 class AnonymousUser(AnonymousUserMixin):
 	def can(self,permissions):
@@ -302,7 +312,6 @@ class Post(db.Model):
 		target.body_html = bleach.linkify(bleach.clean(
 		markdown(value,output_format='html'),
 		tags = allowed_tags,strip=True))
-db.event.listen(Post.body,'set',Post.on_changed_body)
 
 	def to_json(self):
 		json_post = {
@@ -316,7 +325,15 @@ db.event.listen(Post.body,'set',Post.on_changed_body)
 		}		
 
 		return json_post
-    		
+	def from_json(json_post):
+		body = json_post.get('body')
+		if body is None or body == '':
+			raise ValidationError('post does not hava a body')
+		return Post(body=body)	
+			
+db.event.listen(Post.body,'set',Post.on_changed_body)
+
+
 class Comment(db.Model):
 	__tablename__ = 'comments'
 	id = db.Column(db.Integer,primary_key=True)
