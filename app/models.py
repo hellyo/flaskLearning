@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash,check_password_hash
 from flask_login import UserMixin,AnonymousUserMixin
 from . import login_manager
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer
-from flask import current_app,request
+from flask import current_app,request,url_for
 from . import db
 from datetime import datetime
 import hashlib
@@ -120,7 +120,7 @@ class User(UserMixin,db.Model):
 		return check_password_hash(self.password_hash,password)	
 	
 	def generate_confirm_token(self,expiration=3600):
-		s = Serializer(current_app.config['SECRET_KEY'],expiration)
+		s = Serializer(current_app.config['SECRET_KEY'],expiration=expiration)
 		return s.dumps({'confirm':self.id})
 	
 	def confirm(self,token):
@@ -137,7 +137,7 @@ class User(UserMixin,db.Model):
 		return True
 
 	def generate_reset_token(self,expiration = 3600):
-		s=Serializer(current_app.config['SECRET_KEY'],expiration)
+		s=Serializer(current_app.config['SECRET_KEY'],expiration=expiration)
 		return s.dumps({'reset':self.id}) 	 
 
 	def reset_password(self,token,newPasswd):
@@ -153,7 +153,7 @@ class User(UserMixin,db.Model):
 		return True
 
 	def generate_change_mail_token(self,newEmail,expiration = 3600):
-		s = Serializer(current_app.config['SECRET_KEY'],expiration)
+		s = Serializer(current_app.config['SECRET_KEY'],expiration=expiration)
 		return s.dumps({'change_email':self.id,'newE':newEmail})
 		
 	def change_email(self,token):
@@ -243,6 +243,19 @@ class User(UserMixin,db.Model):
 				user.follow(user)
 				db.session.add(user)
 				db.session.commit()
+
+	def generate_auth_token(self,expiration):
+		s = Serializer(current_app.config['SECRET_KEY'],expiration=expiration)
+		return s.dumps({'id':self.id})
+
+	@staticmethod
+	def verify_auth_token(token):
+		s = Serializer(current_app['SECRET_KEY'])
+		try:
+			data = s.loads(token)
+		except:
+			return None
+		return User.query.get(data['id'])
     		
 
 
@@ -290,6 +303,19 @@ class Post(db.Model):
 		markdown(value,output_format='html'),
 		tags = allowed_tags,strip=True))
 db.event.listen(Post.body,'set',Post.on_changed_body)
+
+	def to_json(self):
+		json_post = {
+			'url':url_for('api.get_post',id = self.id,_external =True),
+			'body':self.body,
+			'body_html':self.body_html,
+			'timestamp':self.timestamp,
+			'author':url_for('api.get_user',id=self.author_id,_external=True),
+			'comments':url_for('api.get_post_comments',id=self.id,_external=True),
+			'comment_count':self.comments.count()
+		}		
+
+		return json_post
     		
 class Comment(db.Model):
 	__tablename__ = 'comments'
