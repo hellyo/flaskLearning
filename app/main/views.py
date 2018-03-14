@@ -34,7 +34,7 @@ def index():
         posts = pagination.items
     except:
         posts = None
-    print(pagination.total)
+    
     return render_template('index.html',form=form,posts=posts,pagination=pagination,show_followed=show_followed)
 
 #    return render_template('index.html',name=session.get('name'),known=session.get('known',False))
@@ -48,7 +48,7 @@ def user(username):
     pagination = user.posts.order_by(Post.timestamp.desc()).paginate(page,per_page=10,error_out=False)
     posts=pagination.items
     #posts = user.posts.order_by(Post.timestamp.desc()).all()
-    print(posts)
+    #print(posts)
     return render_template('user.html',user=user,posts=posts,pagination=pagination)
     
 @main.route('/edit-profile',methods=['GET','POST'])
@@ -165,7 +165,7 @@ def followers(username):
         flash('Invalid User')
         return redirect(url_for('.index'))
     page = request.args.get('page',1,type = int)
-    print(user.followers.count())
+    
     pagination = user.followers.paginate(page,per_page=20,error_out=False)
     follows = [{'user':item.follower,'timestamp':item.timestamp} for item in pagination.items if not item.follower == user]
     return render_template('followers.html',user=user,title="Followers of "+username,endpoint='.followers',pagination=pagination,follows=follows)
