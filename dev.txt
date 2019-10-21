@@ -69,7 +69,7 @@ team==1.0
 udiskie==1.7.3
 urllib3==1.22
 visitor==0.1.3
-Werkzeug==0.13
+Werkzeug==0.15.3
 wrapt==1.10.11
 WTForms==2.1
 you-get==0.4.909
